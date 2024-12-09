@@ -7,6 +7,9 @@ on:
 
 jobs:
   deploy:
+    concurrency:
+      group: azure-deployment
+      cancel-in-progress: true
     runs-on: ubuntu-latest
 
     steps:
@@ -26,3 +29,5 @@ jobs:
           resourceGroupName: BCSAI2024-DEVOPS-STUDENTS-A-DEV
           template: ./main.bicep
           parameters: ./main.parameters.json
+          deploymentName: webapp-deployment-${{ github.run_number }}
+          failOnStdErr: false
