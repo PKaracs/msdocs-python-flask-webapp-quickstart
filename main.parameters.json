@@ -7,7 +7,7 @@
     "servicePlanName": { "value": "myServicePlan" },
     "servicePlanLocation": { "value": "westeurope" },
     "webAppName": { "value": "demo-webapp" },
-    "webAppLocation": { "value": "eastus" },
+    "webAppLocation": { "value": "westeurope" },
     "containerRegistryImageName": { "value": "demo-image" },
     "containerRegistryImageVersion": { "value": "latest" }
   }
