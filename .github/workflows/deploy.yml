@@ -27,3 +27,4 @@ jobs:
           template: ./main.bicep
           parameters: ./main.parameters.json
           failOnStdErr: false
+          deploymentName: "github-action-deployment-${{ github.run_number }}"
