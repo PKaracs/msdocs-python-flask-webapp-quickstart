@@ -1,66 +1,71 @@
-// Parameters
+@description('The Azure region for all resources')
 param location string = resourceGroup().location
 
-// Container Registry Parameters
-param containerRegistryName string
-param acrAdminUserEnabled bool = true
+@description('Name of the container registry')
+@minLength(5)
+@maxLength(50)
+param acrName string
 
-// Service Plan Parameters
+@description('Name of the App Service plan')
 param servicePlanName string
-var servicePlanSku = {
-  name: 'B1'
-  tier: 'Basic'
-  family: 'B'
-  capacity: 1
-}
 
-// Web App Parameters
+@description('Name of the web app')
 param webAppName string
-param dockerRegistryServerUserName string
-@secure()
-param dockerRegistryServerPassword string
-param dockerRegistryImageName string
-param dockerRegistryImageVersion string = 'latest'
-param webAppCommandLine string = ''
+
+@description('Name of the container image')
+param containerRegistryImageName string
+
+@description('Version/tag of the container image')
+param containerRegistryImageVersion string = 'latest'
 
 // Deploy Azure Container Registry
-module containerRegistry 'modules/container-registry.bicep' = {
-  name: 'containerRegistryDeployment'
+module acrModule './modules/acr.bicep' = {
+  name: 'deployACR'
   params: {
-    name: containerRegistryName
+    name: acrName
     location: location
-    adminUserEnabled: acrAdminUserEnabled
+    acrAdminUserEnabled: true
   }
 }
 
-// Deploy Azure Service Plan
-module servicePlan 'modules/service-plan.bicep' = {
-  name: 'servicePlanDeployment'
+// Deploy App Service Plan
+module servicePlanModule './modules/servicePlan.bicep' = {
+  name: 'deployServicePlan'
   params: {
     name: servicePlanName
     location: location
-    sku: servicePlanSku
+    sku: {
+      name: 'B1'
+      tier: 'Basic'
+      size: 'B1'
+      family: 'B'
+      capacity: 1
+    }
   }
 }
 
-// Deploy Azure Web App
-module webApp 'modules/web-app.bicep' = {
-  name: 'webAppDeployment'
+// Deploy Web App
+module webAppModule './modules/webApp.bicep' = {
+  name: 'deployWebApp'
   params: {
     name: webAppName
     location: location
-    appServicePlanId: servicePlan.outputs.id
-    dockerRegistryName: containerRegistryName
-    dockerRegistryServerUserName: dockerRegistryServerUserName
-    dockerRegistryServerPassword: dockerRegistryServerPassword
-    dockerRegistryImageName: dockerRegistryImageName
-    dockerRegistryImageVersion: dockerRegistryImageVersion
-    appCommandLine: webAppCommandLine
+    kind: 'app,linux,container'
+    serverFarmResourceId: servicePlanModule.outputs.servicePlanId
+    siteConfig: {
+      linuxFxVersion: 'DOCKER|${acrModule.outputs.registryLoginServer}/${containerRegistryImageName}:${containerRegistryImageVersion}'
+      appCommandLine: ''
+      alwaysOn: true
+    }
+    appSettingsKeyValuePairs: {
+      WEBSITES_ENABLE_APP_SERVICE_STORAGE: 'false'
+      WEBSITES_PORT: '50505'
+      DOCKER_REGISTRY_SERVER_URL: 'https://${acrModule.outputs.registryLoginServer}'
+      DOCKER_REGISTRY_SERVER_USERNAME: acrModule.outputs.adminUsername
+      DOCKER_REGISTRY_SERVER_PASSWORD: acrModule.outputs.adminPassword
+    }
   }
 }
 
-// Outputs
-output containerRegistryName string = containerRegistry.outputs.containerRegistryName
-output containerRegistryLoginServer string = containerRegistry.outputs.containerRegistryLoginServer
-output appServicePlanId string = servicePlan.outputs.id
-output webAppHostName string = webApp.outputs.appServiceAppHostName
+output webAppName string = webAppModule.outputs.webAppName
+output acrLoginServer string = acrModule.outputs.registryLoginServer

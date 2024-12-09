@@ -2,23 +2,17 @@
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
+    "location": {
+      "value": "westeurope"
+    },
     "acrName": {
       "value": "demoacr${uniqueString(resourceGroup().id)}"
-    },
-    "acrLocation": {
-      "value": "westeurope"
     },
     "servicePlanName": {
       "value": "myServicePlan"
     },
-    "servicePlanLocation": {
-      "value": "westeurope"
-    },
     "webAppName": {
       "value": "demo-webapp"
-    },
-    "webAppLocation": {
-      "value": "westeurope"
     },
     "containerRegistryImageName": {
       "value": "demo-image"

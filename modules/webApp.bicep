@@ -12,6 +12,7 @@ resource webApp 'Microsoft.Web/sites@2022-03-01' = {
   properties: {
     serverFarmId: serverFarmResourceId
     siteConfig: siteConfig
+    httpsOnly: true
   }
 }
 
@@ -20,3 +21,5 @@ resource appSettings 'Microsoft.Web/sites/config@2022-03-01' = {
   name: 'appsettings'
   properties: appSettingsKeyValuePairs
 }
+
+output webAppName string = webApp.name
