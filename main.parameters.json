@@ -1,0 +1,15 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+      "acrName": { "value": "demo-acr" },
+      "acrLocation": { "value": "eastus" },
+      "servicePlanName": { "value": "myServicePlan" },
+      "servicePlanLocation": { "value": "eastus" },
+      "webAppName": { "value": "demo-webapp" },
+      "webAppLocation": { "value": "eastus" },
+      "containerRegistryImageName": { "value": "demo-image" },
+      "containerRegistryImageVersion": { "value": "latest" }
+    }
+  }
+  
