@@ -5,7 +5,7 @@
     "acrName": { "value": "demo-acr" },
     "acrLocation": { "value": "westeurope" },
     "servicePlanName": { "value": "myServicePlan" },
-    "servicePlanLocation": { "value": "eastus" },
+    "servicePlanLocation": { "value": "westeurope" },
     "webAppName": { "value": "demo-webapp" },
     "webAppLocation": { "value": "eastus" },
     "containerRegistryImageName": { "value": "demo-image" },
