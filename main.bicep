@@ -1,52 +1,66 @@
-param acrName string
-param acrLocation string
-param servicePlanName string
-param servicePlanLocation string
-param webAppName string
-param webAppLocation string
-param containerRegistryImageName string
-param containerRegistryImageVersion string
+// Parameters
+param location string = resourceGroup().location
 
-module acrModule './modules/acr.bicep' = {
-  name: 'deployACR'
+// Container Registry Parameters
+param containerRegistryName string
+param acrAdminUserEnabled bool = true
+
+// Service Plan Parameters
+param servicePlanName string
+var servicePlanSku = {
+  name: 'B1'
+  tier: 'Basic'
+  family: 'B'
+  capacity: 1
+}
+
+// Web App Parameters
+param webAppName string
+param dockerRegistryServerUserName string
+@secure()
+param dockerRegistryServerPassword string
+param dockerRegistryImageName string
+param dockerRegistryImageVersion string = 'latest'
+param webAppCommandLine string = ''
+
+// Deploy Azure Container Registry
+module containerRegistry 'modules/container-registry.bicep' = {
+  name: 'containerRegistryDeployment'
   params: {
-    name: acrName
-    location: acrLocation
-    acrAdminUserEnabled: true
+    name: containerRegistryName
+    location: location
+    adminUserEnabled: acrAdminUserEnabled
   }
 }
 
-module servicePlanModule './modules/servicePlan.bicep' = {
-  name: 'deployServicePlan'
+// Deploy Azure Service Plan
+module servicePlan 'modules/service-plan.bicep' = {
+  name: 'servicePlanDeployment'
   params: {
     name: servicePlanName
-    location: servicePlanLocation
-    sku: {
-      capacity: 1
-      family: 'B'
-      name: 'B1'
-      size: 'B1'
-      tier: 'Basic'
-    }
+    location: location
+    sku: servicePlanSku
   }
 }
 
-module webAppModule './modules/webApp.bicep' = {
-  name: 'deployWebApp'
+// Deploy Azure Web App
+module webApp 'modules/web-app.bicep' = {
+  name: 'webAppDeployment'
   params: {
     name: webAppName
-    location: webAppLocation
-    kind: 'app'
-    serverFarmResourceId: servicePlanModule.outputs.servicePlanId
-    siteConfig: {
-      linuxFxVersion: 'DOCKER|${acrModule.outputs.registryLoginServer}/${containerRegistryImageName}:${containerRegistryImageVersion}'
-      appCommandLine: ''
-    }
-    appSettingsKeyValuePairs: {
-      WEBSITES_ENABLE_APP_SERVICE_STORAGE: false
-      DOCKER_REGISTRY_SERVER_URL: acrModule.outputs.registryLoginServer
-      DOCKER_REGISTRY_SERVER_USERNAME: acrModule.outputs.adminUsername
-      DOCKER_REGISTRY_SERVER_PASSWORD: acrModule.outputs.adminPassword
-    }
+    location: location
+    appServicePlanId: servicePlan.outputs.id
+    dockerRegistryName: containerRegistryName
+    dockerRegistryServerUserName: dockerRegistryServerUserName
+    dockerRegistryServerPassword: dockerRegistryServerPassword
+    dockerRegistryImageName: dockerRegistryImageName
+    dockerRegistryImageVersion: dockerRegistryImageVersion
+    appCommandLine: webAppCommandLine
   }
 }
+
+// Outputs
+output containerRegistryName string = containerRegistry.outputs.containerRegistryName
+output containerRegistryLoginServer string = containerRegistry.outputs.containerRegistryLoginServer
+output appServicePlanId string = servicePlan.outputs.id
+output webAppHostName string = webApp.outputs.appServiceAppHostName
