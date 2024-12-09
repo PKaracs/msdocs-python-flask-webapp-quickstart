@@ -16,8 +16,8 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-01-01-pr
 @description('The login server URL for the container registry')
 output registryLoginServer string = containerRegistry.properties.loginServer
 
-@secure()
-output adminUsername string = containerRegistry.listCredentials().username
+#disable-next-line outputs-should-not-contain-secrets use-resource-symbol-reference
+output adminUsername string = listCredentials(containerRegistry.id, '2023-01-01-preview').username
 
-@secure()
-output adminPassword string = containerRegistry.listCredentials().passwords[0].value
+#disable-next-line outputs-should-not-contain-secrets
+output adminPassword string = listCredentials(containerRegistry.id, '2023-01-01-preview').passwords[0].value
