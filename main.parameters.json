@@ -2,13 +2,13 @@
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "acrName": { "value": "acr${uniqueString(resourceGroup().id)}" },
+    "acrName": { "value": "demo-acr" },
     "acrLocation": { "value": "westeurope" },
-    "servicePlanName": { "value": "asp-${uniqueString(resourceGroup().id)}" },
+    "servicePlanName": { "value": "myServicePlan" },
     "servicePlanLocation": { "value": "westeurope" },
-    "webAppName": { "value": "webapp-${uniqueString(resourceGroup().id)}" },
+    "webAppName": { "value": "demo-webapp" },
     "webAppLocation": { "value": "westeurope" },
-    "containerRegistryImageName": { "value": "flask-app" },
+    "containerRegistryImageName": { "value": "demo-image" },
     "containerRegistryImageVersion": { "value": "latest" }
   }
 }
