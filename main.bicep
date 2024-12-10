@@ -19,55 +19,16 @@ param containerRegistryImageName string
 @description('The version/tag of the container image')
 param containerRegistryImageVersion string
 
-var acrUsernameSecretName = 'acr-admin-username'
-var acrPasswordSecretName = 'acr-admin-password1'
-var keyVaultName = '${name}-kv'
-
-module keyVault 'modules/key-vault.bicep' = {
-  name: 'keyVaultDeployment'
-  params: {
-    name: keyVaultName
-    location: location
-    enableVaultForDeployment: true
-    roleAssignments: [
-      {
-        principalId: '7200f83e-ec45-4915-8c52-fb94147cfe5a'
-        roleDefinitionIdOrName: 'Key Vault Secrets User'
-        principalType: 'ServicePrincipal'
-      }
-      {
-        principalId: 'f248a218-1ef9-47bf-9928-ae47093fd442'  // ARM Service Principal
-        roleDefinitionIdOrName: 'Key Vault Secrets User'
-        principalType: 'ServicePrincipal'
-      }
-      {
-        principalId: '25d8d697-c4a2-479f-96e0-15593a830ae5'  // GitHub Actions Service Principal
-        roleDefinitionIdOrName: 'Key Vault Secrets User'
-        principalType: 'ServicePrincipal'
-      }
-    ]
-  }
-}
-
-resource keyVaultResource 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-  name: keyVaultName
-}
-
-module containerRegistry 'modules/acr.bicep' = {
-  name: 'registry-deployment'
+module containerRegistry 'modules/container-registry.bicep' = {
+  name: 'containerRegistryDeployment'
   params: {
     name: name
     location: location
     acrAdminUserEnabled: acrAdminUserEnabled
-    adminCredentialsKeyVaultResourceId: keyVault.outputs.id
-    adminCredentialsKeyVaultSecretUserName: acrUsernameSecretName
-    adminCredentialsKeyVaultSecretUserPassword1: acrPasswordSecretName
-    adminCredentialsKeyVaultSecretUserPassword2: 'acr-admin-password2'
   }
 }
 
-
-module appServicePlan 'modules/webApp.bicep' = {
+module appServicePlan 'modules/app-service-plan.bicep' = {
   name: 'appServicePlanPeter'
   params: {
     name: 'appServicePlanPeter'
@@ -75,13 +36,14 @@ module appServicePlan 'modules/webApp.bicep' = {
     sku: {
       name: 'B1'
       capacity: 1
+      family: 'B'
+      size: 'B1'
       tier: 'Basic'
     }
   }
 }
 
-
-module appService 'modules/servicePlan.bicep' = {
+module appService 'modules/app-service.bicep' = {
   name: 'appServicePeter'
   params: {
     name: appServiceName
@@ -90,12 +52,8 @@ module appService 'modules/servicePlan.bicep' = {
     containerRegistryName: name
     containerRegistryImageName: containerRegistryImageName
     containerRegistryImageVersion: containerRegistryImageVersion
-    dockerRegistryServerUrl: 'https://${containerRegistry.outputs.loginServer}'
-    dockerRegistryServerUserName: keyVaultResource.getSecret(acrUsernameSecretName)
-    dockerRegistryServerPassword: keyVaultResource.getSecret(acrPasswordSecretName)
   }
 }
-
 
 output containerRegistryLoginServer string = containerRegistry.outputs.loginServer
 output appServiceId string = appService.outputs.id

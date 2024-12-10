@@ -1,30 +1,56 @@
-name: Deploy Infrastructure
+name: Build and Deploy Bicep Template
 
 on:
   push:
     branches:
-      - main
-  workflow_dispatch:
+      - main  
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v2
 
-      - name: Azure Login
+      - name: Set up Azure CLI
+        uses: azure/cli@v1.0.7
+        with:
+          inlineScript: |
+            az version
+
+      - name: Login to Azure
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Deploy Bicep
-        uses: azure/arm-deploy@v1
+      - name: Build Bicep Template
+        run: |
+          # Validate the Bicep template
+          az bicep build --file main.bicep
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build  # Ensure this job runs after the build job
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Azure CLI
+        uses: azure/cli@v1.0.7
         with:
-          subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          resourceGroupName: BCSAI2024-DEVOPS-STUDENTS-A-DEV
-          template: ./main.bicep
-          parameters: ./main.parameters.json
-          failOnStdErr: false
-          deploymentName: "github-action-deployment-${{ github.run_number }}"
+          inlineScript: |
+            az version
+
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy Bicep Template
+        run: |
+          az deployment group create \
+            --resource-group BCSAI2024-DEVOPS-STUDENTS-A-DEV \
+            --template-file main.bicep \
+            --parameters main.parameters.json

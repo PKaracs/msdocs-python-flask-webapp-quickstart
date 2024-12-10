@@ -1,21 +1,18 @@
 {
-  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json",
   "contentVersion": "1.0.0.0",
   "parameters": {
     "location": {
-      "value": "westeurope"
+      "value": "northeurope"
     },
-    "acrName": {
-      "value": "demoacr${uniqueString(resourceGroup().id)}"
+    "name": {
+      "value": "PeterAppRegistry"
     },
-    "servicePlanName": {
-      "value": "myServicePlan"
-    },
-    "webAppName": {
-      "value": "demo-webapp"
+    "appServiceName": {
+      "value": "PeterAppService"
     },
     "containerRegistryImageName": {
-      "value": "demo-image"
+      "value": "PeterAppRegistry"
     },
     "containerRegistryImageVersion": {
       "value": "latest"
