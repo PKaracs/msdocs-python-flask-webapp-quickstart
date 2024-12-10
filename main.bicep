@@ -1,16 +1,15 @@
-@description('Required. Name of your Azure Container Registry.')
-@minLength(5)
-@maxLength(50)
-param name string
+// Parameters
+@description('The location for all resources')
+param location string
 
-@description('Enable admin user that have push / pull permission to the registry.')
-param acrAdminUserEnabled bool = true
+@description('The name of the Container Registry')
+param acrName string
 
-@description('Optional. Location for all resources.')
-param location string = resourceGroup().location
+@description('The name of the App Service Plan')
+param appServicePlanName string
 
-@description('The name of the App Service')
-param appServiceName string
+@description('The API App name (backend)')
+param webAppName string
 
 @description('The name of the container image')
 param containerRegistryImageName string
@@ -18,82 +17,76 @@ param containerRegistryImageName string
 @description('The version/tag of the container image')
 param containerRegistryImageVersion string
 
-var acrUsernameSecretName = 'acr-admin-username'
-var acrPasswordSecretName = 'acr-admin-password1'
-var keyVaultName = '${name}-kv'
+@description('The key vault name')
+param keyVaultName string
 
+@description('Role assignments for Key Vault')
+param keyVaultRoleAssignments array = []
+
+// Key Vault deployment
 module keyVault 'modules/key-vault.bicep' = {
-  name: 'keyVaultDeployment'
+  name: 'keyVault'
   params: {
-    name: keyVaultName
+    keyVaultName: keyVaultName
     location: location
-    enableVaultForDeployment: true
-    roleAssignments: [
-      {
-        principalId: '7200f83e-ec45-4915-8c52-fb94147cfe5a'
-        roleDefinitionIdOrName: 'Key Vault Secrets User'
-        principalType: 'ServicePrincipal'
-      }
-      {
-        principalId: 'f248a218-1ef9-47bf-9928-ae47093fd442'  // ARM Service Principal
-        roleDefinitionIdOrName: 'Key Vault Secrets User'
-        principalType: 'ServicePrincipal'
-      }
-      {
-        principalId: '25d8d697-c4a2-479f-96e0-15593a830ae5'  // GitHub Actions Service Principal
-        roleDefinitionIdOrName: 'Key Vault Secrets User'
-        principalType: 'ServicePrincipal'
-      }
-    ]
+    roleAssignments: keyVaultRoleAssignments
   }
 }
 
-resource keyVaultResource 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+// Reference the deployed Key Vault
+resource keyVaultReference 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
   name: keyVaultName
+  dependsOn: [
+    keyVault
+  ]
 }
 
-module containerRegistry 'modules/container-registry.bicep' = {
-  name: 'registry-deployment'
+// ACR deployment
+module acr 'modules/acr.bicep' = {
+  name: 'acrDeployment'
   params: {
-    name: name
+    name: acrName
     location: location
-    acrAdminUserEnabled: acrAdminUserEnabled
-    adminCredentialsKeyVaultResourceId: keyVault.outputs.id
-    adminCredentialsKeyVaultSecretUserName: acrUsernameSecretName
-    adminCredentialsKeyVaultSecretUserPassword1: acrPasswordSecretName
-    adminCredentialsKeyVaultSecretUserPassword2: 'acr-admin-password2'
+    keyVaultResourceId: keyVault.outputs.keyVaultResourceId
+    keyVaultSecretNameAdminUsername: 'acr-username'
+    keyVaultSecretNameAdminPassword0: 'acr-password0'
+    keyVaultSecretNameAdminPassword1: 'acr-password1'
   }
+  dependsOn: [
+    keyVault
+  ]
 }
 
+// App Service Plan deployment
 module appServicePlan 'modules/app-service-plan.bicep' = {
-  name: 'appServicePlanGuy'
+  name: 'appServicePlanDeployment'
   params: {
-    name: 'appServicePlanGuy'
+    name: appServicePlanName
     location: location
-    sku: {
-      name: 'B1'
-      capacity: 1
-      tier: 'Basic'
-    }
+    kind: 'Linux'
+    reserved: true
   }
 }
 
-module appService 'modules/app-service.bicep' = {
-  name: 'appServiceGuy'
+// Web App deployment
+module webApp 'modules/web-app.bicep' = {
+  name: 'webAppDeployment'
   params: {
-    name: appServiceName
+    appServiceAPIAppName: webAppName
     location: location
-    appServicePlanName: appServicePlan.name
-    containerRegistryName: name
-    containerRegistryImageName: containerRegistryImageName
-    containerRegistryImageVersion: containerRegistryImageVersion
-    dockerRegistryServerUrl: 'https://${containerRegistry.outputs.loginServer}'
-    dockerRegistryServerUserName: keyVaultResource.getSecret(acrUsernameSecretName)
-    dockerRegistryServerPassword: keyVaultResource.getSecret(acrPasswordSecretName)
+    appServicePlanId: appServicePlan.outputs.id
+    containerRegistryName: acrName
+    dockerRegistryServerUserName: keyVaultReference.getSecret('acr-username')
+    dockerRegistryServerPassword: keyVaultReference.getSecret('acr-password0')
+    dockerRegistryImageName: containerRegistryImageName
+    dockerRegistryImageTag: containerRegistryImageVersion
   }
+  dependsOn: [
+    acr
+    appServicePlan
+  ]
 }
 
-output containerRegistryLoginServer string = containerRegistry.outputs.loginServer
-output appServiceId string = appService.outputs.id
-output appServiceName string = appService.outputs.name
-output appServiceDefaultHostName string = appService.outputs.defaultHostName
+// Outputs
+output webAppHostName string = webApp.outputs.backendAppHostName
+output keyVaultResourceId string = keyVault.outputs.keyVaultResourceId
