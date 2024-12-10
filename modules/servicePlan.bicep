@@ -1,8 +1,19 @@
+@description('The name of the App Service Plan')
 param name string
-param location string
-param sku object
 
-resource servicePlan 'Microsoft.Web/serverfarms@2022-03-01' = {
+@description('The location for the App Service Plan')
+param location string
+
+@description('The SKU of the App Service Plan')
+param sku object = {
+  capacity: 1
+  family: 'B'
+  name: 'B1'
+  size: 'B1'
+  tier: 'Basic'
+}
+
+resource appServicePlan 'Microsoft.Web/serverfarms@2022-03-01' = {
   name: name
   location: location
   sku: sku
@@ -12,4 +23,5 @@ resource servicePlan 'Microsoft.Web/serverfarms@2022-03-01' = {
   }
 }
 
-output servicePlanId string = servicePlan.id
+output id string = appServicePlan.id
+output name string = appServicePlan.name
