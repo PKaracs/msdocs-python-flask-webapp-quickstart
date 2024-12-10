@@ -1,4 +1,3 @@
-
 @description('Required. Name of your Azure Container Registry.')
 @minLength(5)
 @maxLength(50)
@@ -14,17 +13,34 @@ param location string = resourceGroup().location
 param appServiceName string
 
 @description('The name of the container image')
-param containerRegistryImageName string
+param containerRegistryImageName string = 'PeterAppRegistry'
 
 @description('The version/tag of the container image')
-param containerRegistryImageVersion string
+param containerRegistryImageVersion string = 'latest'
 
+module keyVault 'modules/key-vault.bicep' = {
+  name: 'keyVaultDeployment'
+  params: {
+    name: 'myKeyVault'
+    location: location
+    enableVaultForDeployment: true
+  }
+}
+
+// Reference the Key Vault
+var keyVaultReference = keyVault.outputs.keyVaultId
+
+// Pass secrets to the container registry module
 module containerRegistry 'modules/container-registry.bicep' = {
   name: 'containerRegistryDeployment'
   params: {
     name: name
     location: location
     acrAdminUserEnabled: acrAdminUserEnabled
+    adminCredentialsKeyVaultResourceId: keyVaultReference
+    adminCredentialsKeyVaultSecretUserName: 'acr-username'
+    adminCredentialsKeyVaultSecretUserPassword1: 'acr-password1'
+    adminCredentialsKeyVaultSecretUserPassword2: 'acr-password2'
   }
 }
 
